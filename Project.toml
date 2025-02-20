@@ -1,0 +1,21 @@
+name = "MeshLine"
+uuid = "7724cf70-09f7-50ff-88bb-842511fbd3cc"
+authors = ["Quinten Preiss"]
+version = "1.0.0-DEV"
+
+[deps]
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+MakieCore = "20f20a25-4f0e-4fdf-b5d1-57303727442b"
+Rotations = "6038ab10-8711-5258-84ad-4b1120ba62dc"
+
+[compat]
+LinearAlgebra = "1.11.0"
+MakieCore = "0.9.0"
+Rotations = "1.7.1"
+julia = "1.6.7"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
