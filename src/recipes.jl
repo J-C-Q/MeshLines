@@ -82,19 +82,18 @@ function MakieCore.plot!(ml::MeshLines{<:Tuple{<:AbstractVector{<:MakieCore.Poin
     points = ml[1]
     around = ml.around
 
-    vertices_ob = MakieCore.Observable(Matrix{Float32}(undef, length(points[]) * around[], 3))
-    faces_ob = MakieCore.Observable(Matrix{UInt32}(undef, 2 * around[] * (length(points[]) - 1), 3))
+    vertices_ob = MakieCore.Observable(Matrix{Float32}(undef, length(points[]) * around[] + 2, 3))
+    faces_ob = MakieCore.Observable(Matrix{UInt32}(undef, 2 * around[] * (length(points[]) - 1) + 2around[], 3))
 
 
 
 
 
-    function update_plot(points)
-        vertices = Matrix{Float32}(undef, length(points) * around[], 3)
-        faces = zeros(UInt32, 2 * around[] * (length(points) - 1), 3)
+    function update_plot(points, n_around)
+        vertices = Matrix{Float32}(undef, length(points) * n_around + 2, 3)
+        faces = ones(UInt32, 2 * n_around * (length(points) - 1) + 2n_around, 3)
 
         linespoints = points
-        n_around = around[]
 
         pointsaround = Matrix{MakieCore.Point3f}(undef, n_around, length(linespoints))
         angle = 2π / n_around
@@ -129,7 +128,7 @@ function MakieCore.plot!(ml::MeshLines{<:Tuple{<:AbstractVector{<:MakieCore.Poin
                 normalvec = normal(v1)
                 R = AngleAxis(angle, v1...)
                 for j in 1:n_around
-                    pointsaround[j, 1] = R^(j - 1) * normalvec .* ml.width[] .+ p
+                    pointsaround[j, i] = R^(j - 1) * normalvec .* ml.width[] .+ p
                 end
             else
                 #elliptic
@@ -142,6 +141,15 @@ function MakieCore.plot!(ml::MeshLines{<:Tuple{<:AbstractVector{<:MakieCore.Poin
             end
         end
 
+
+
+
+
+
+
+
+
+
         pointsaroundVector = vec(reshape(pointsaround, (length(pointsaround), 1)))
 
         rings = [[pointsaround[j, i] for j in 1:n_around] for i in 1:length(linespoints)]
@@ -151,16 +159,16 @@ function MakieCore.plot!(ml::MeshLines{<:Tuple{<:AbstractVector{<:MakieCore.Poin
         end
 
         # Flatten the rings into your vertices array (ensure the same order is maintained):
-        vertices = vertices_ob[]
         for (i, ring) in enumerate(rings)
             for j in 1:n_around
                 idx = (i - 1) * n_around + j
                 vertices[idx, :] .= ring[j]
             end
         end
+        vertices[end-1, :] .= points[1]
+        vertices[end, :] .= points[end]
 
         num_rings = length(linespoints)
-        faces = faces_ob[]
         face_idx = 1
         for i in 1:(num_rings-1)
             for j in 1:n_around
@@ -177,12 +185,27 @@ function MakieCore.plot!(ml::MeshLines{<:Tuple{<:AbstractVector{<:MakieCore.Poin
                 face_idx += 1
             end
         end
+
+        for j in 1:n_around
+            next_j = mod1(j + 1, n_around)
+            faces[end-2n_around+j, :] = [next_j, j, size(vertices, 1) - 1]
+        end
+
+        for j in 1:n_around
+            next_j = mod1(j + 1, n_around)
+            faces[end-n_around+j, :] = [
+                size(vertices, 1) - 2 - n_around + j,
+                size(vertices, 1) - 2 - n_around + next_j,
+                size(vertices, 1)]
+        end
+
         vertices_ob[] = vertices
         faces_ob[] = faces
     end
 
-    MakieCore.Observables.onany(update_plot, points)
-    update_plot(points[])
+
+    MakieCore.Observables.onany(update_plot, points, around)
+    update_plot(points[], around[])
 
     mesh!(ml, vertices_ob, faces_ob; transparency=false, overdraw=false, color=:red)
 
